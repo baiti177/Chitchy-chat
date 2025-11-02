@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Chat Room by Manda 😺</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <div id="container">
+    <div id="chat">
+      <h2>💬 Chat Room</h2>
+      <div id="messages"></div>
+      <div id="input-area">
+        <input id="msg" placeholder="Ketik pesan..." autocomplete="off">
+        <button id="send">Kirim</button>
+      </div>
+    </div>
+
+    <div id="users">
+      <h4>👥 Pengguna Online</h4>
+      <ul id="userList"></ul>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    let username = '';
+    let currentChat = 'global'; // default: chat umum
+
+    // Minta nama pengguna
+    while (!username) {
+      username = prompt('Masukkan nama kamu:');
+    }
+    socket.emit('set username', username);
+
+    // Kirim pesan (umum atau pribadi)
+    document.getElementById('send').onclick = () => {
+      const msg = document.getElementById('msg').value;
+      if (msg.trim() === '') return;
+
+      if (currentChat === 'global') {
+        socket.emit('chat message', msg);
+      } else {
+        socket.emit('private message', { to: currentChat, msg });
+        tampilkanPesan({ user: `Kamu → ${currentChat}`, text: msg }, true);
+      }
+
+      document.getElementById('msg').value = '';
+    };
+
+    // Fungsi menampilkan pesan di layar
+    function tampilkanPesan(data, self = false) {
+      const messages = document.getElementById('messages');
+      const div = document.createElement('div');
+      div.classList.add('message', self ? 'self' : 'other');
+      div.innerHTML = `<strong>${data.user}:</strong> ${data.text}`;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    // Pesan umum
+    socket.on('chat message', (data) => tampilkanPesan(data));
+
+    // Pesan pribadi
+    socket.on('private message', (data) => {
+      tampilkanPesan({ user: `${data.from} (privat)`, text: data.msg });
+    });
+
+    // Tampilkan daftar pengguna
+    socket.on('user list', (list) => {
+      const userList = document.getElementById('userList');
+      userList.innerHTML = '';
+
+      // Tambahkan tombol "Chat Umum"
+      const globalItem = document.createElement('li');
+      globalItem.textContent = '🌍 Chat Umum';
+      globalItem.style.fontWeight = (currentChat === 'global') ? 'bold' : 'normal';
+      globalItem.onclick = () => {
+        currentChat = 'global';
+        document.getElementById('messages').innerHTML = '';
+      };
+      userList.appendChild(globalItem);
+
+      list.forEach((user) => {
+        if (user !== username) {
+          const li = document.createElement('li');
+          li.textContent = user;
+          li.style.cursor = 'pointer';
+          li.onclick = () => {
+            currentChat = user;
+            document.getElementById('messages').innerHTML = '';
+            tampilkanPesan({ user: 'Sistem', text: `Kamu sedang chat pribadi dengan ${user}` });
+          };
+          userList.appendChild(li);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

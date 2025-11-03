@@ -42,6 +42,8 @@ io.on('connection', (socket) => {
   });
 });
 
-http.listen(3000, () => {
-  console.log('Server berjalan di http://localhost:3000');
+// 🟢 Jalankan server di semua jaringan lokal (WiFi)
+// Gunakan IP komputer kamu (192.168.18.68)
+http.listen(3000, '0.0.0.0', () => {
+  console.log('Server berjalan di http://192.168.18.68:3000');
 });
